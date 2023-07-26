@@ -5,17 +5,14 @@ import androidx.room.Delete
 import androidx.room.Insert
 import androidx.room.Query
 
-@Dao
-interface TodoDao {
-    // get All
-    @Query("SELECT * FROM TodoEntity")
-    fun getAllTodo(): List<TodoEntity>
+@Dao // 어떤 구성요소인지 알려주려면 꼭 어노테이션을 써야 합니다.
+interface ToDoDao {
+    @Query("SELECT * FROM ToDoEntity")
+    fun getAll() : List<ToDoEntity>
 
-    // insert todo
     @Insert
-    fun insertTodo(todo: TodoEntity)
+    fun insertTodo(todo: ToDoEntity)
 
-    // delelte todo
     @Delete
-    fun deleteTodo(todo: TodoEntity)
+    fun deleteTodo(todo : ToDoEntity)
 }

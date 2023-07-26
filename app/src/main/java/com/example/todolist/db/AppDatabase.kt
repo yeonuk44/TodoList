@@ -4,29 +4,25 @@ import android.content.Context
 import androidx.room.Database
 import androidx.room.Room
 import androidx.room.RoomDatabase
+@Database(entities = arrayOf(ToDoEntity::class),version = 1) // ❶ 조건 1
+abstract class AppDatabase : RoomDatabase() { // ❷ 조건 2
 
-// Room library 사용 조건
+    abstract fun getTodoDao() : ToDoDao // ❸ 조건 3
 
-// 1. Entity 사용을 위한 바인딩
-@Database(entities = arrayOf(TodoEntity::class), version = 1)
+    companion object {
+        val databaseName = "db_todo" // 데이터베이스 이름입니다. 임의로 지정해주어도 됩니다.
+        var appDatabase : AppDatabase? = null
 
-// 2. DB 사용을 위한 바인딩 및 추상화 작업
-abstract class AppDatabase : RoomDatabase(){
-
-    // 조회라는 행위를 사용하기 위한 TodoDao  바인딩
-    abstract fun getTodoDao() : TodoDao
-
-    companion object{
-        val databaseName = "db_todo"
-        var appDatabase : AppDatabase ?= null
-
-        fun getInstance(context: Context) : AppDatabase? {
+        fun getInstance(context : Context) : AppDatabase? {
             if(appDatabase == null){
-                appDatabase = Room.databaseBuilder(context,
-                AppDatabase::class.java,
-                databaseName).fallbackToDestructiveMigration().build()
+                appDatabase =  Room.databaseBuilder(context,
+                    AppDatabase::class.java,
+                    databaseName).
+                fallbackToDestructiveMigration()
+                    .build()
             }
-            return appDatabase
+            return  appDatabase
         }
     }
+
 }

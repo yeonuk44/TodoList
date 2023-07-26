@@ -1,22 +1,24 @@
 package com.example.todolist
 
+import android.content.DialogInterface
 import android.content.Intent
-import androidx.appcompat.app.AppCompatActivity
 import android.os.Bundle
-import android.widget.Button
+import android.widget.Toast
+import androidx.appcompat.app.AlertDialog
+import androidx.appcompat.app.AppCompatActivity
 import androidx.recyclerview.widget.LinearLayoutManager
 import com.example.todolist.databinding.ActivityMainBinding
 import com.example.todolist.db.AppDatabase
-import com.example.todolist.db.TodoDao
-import com.example.todolist.db.TodoEntity
+import com.example.todolist.db.ToDoDao
+import com.example.todolist.db.ToDoEntity
 
-class MainActivity : AppCompatActivity() {
+class MainActivity : AppCompatActivity(), OnItemLongClickListener { // ❶
 
-    private lateinit var binding : ActivityMainBinding
+    private lateinit var binding: ActivityMainBinding
 
-    private lateinit var db : AppDatabase
-    private lateinit var todoDao : TodoDao
-    private lateinit var todoList: ArrayList<TodoEntity>
+    private lateinit var db: AppDatabase
+    private lateinit var todoDao: ToDoDao
+    private lateinit var todoList: ArrayList<ToDoEntity>
     private lateinit var adapter: TodoRecyclerViewAdapter
 
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -24,41 +26,65 @@ class MainActivity : AppCompatActivity() {
         binding = ActivityMainBinding.inflate(layoutInflater)
         setContentView(binding.root)
 
+        binding.btnAdd.setOnClickListener {
+            val intent = Intent(this, AddTodoActivity::class.java)
+            startActivity(intent)
+        }
+
+        // DB 인스턴스를 가져오고 DB작업을 할 수 있는 DAO를 가져옵니다.
         db = AppDatabase.getInstance(this)!!
         todoDao = db.getTodoDao()
 
         getAllTodoList()
+    }
 
-        binding.btnAddTodo.setOnClickListener {
-            val intent = Intent(this,AddTodoActivity::class.java)
-            startActivity(intent)
+    private fun getAllTodoList() {
+        Thread {
+            todoList = ArrayList(todoDao.getAll())
+            setRecyclerView()
+        }.start()
+    }
+
+    private fun setRecyclerView() {
+        // 리사이클러뷰 설정
+        runOnUiThread {
+            adapter = TodoRecyclerViewAdapter(todoList, this) // ❷ 어댑터 객체 할당
+            binding.recyclerView.adapter = adapter // 리사이클러뷰 어댑터로 위에서 만든 어댑터 설정
+            binding.recyclerView.layoutManager = LinearLayoutManager(this) // 레이아웃 매니저 설정
         }
     }
 
-    private fun getAllTodoList(){
-        Thread{
-            todoList = ArrayList(todoDao.getAllTodo())
-            setRecyclerView()
-
-        }
+    override fun onRestart() {
+        super.onRestart()
+        getAllTodoList()
     }
 
     /**
-     * Info:
-     * View에 대한 제어가 필요한 것임에도 setRecyclerView()는 getAllTodoList()안에서 수행되고 있음.
-     * getAllTodoList()는 메인 스레드가 아닌 Thread에서 실행되고 있기 때문에 View에 대한 제어가 불가능하다.(왜냐하면 View는 중요한 요소로 메인 Thread에서만 돌아가기 때문)
-     * 따라서 runOnUiThread 모듈을 사용해서 구현해야 함.
-     */
-    private fun setRecyclerView() {
-        runOnUiThread {
-            adapter = TodoRecyclerViewAdapter(todoList)
-            binding.recyclerView.adapter = adapter
-            binding.recyclerView.layoutManager = LinearLayoutManager(this)
-        }
+     * OnItemLongClickListener 인터페이스 구현부
+     * */
+    override fun onLongClick(position: Int) {
+        val builder: AlertDialog.Builder = AlertDialog.Builder(this)
+        builder.setTitle("할 일 삭제")
+        builder.setMessage("정말 삭제하시겠습니까?")
+        builder.setNegativeButton("취소", null)
+        builder.setPositiveButton("네",
+            object : DialogInterface.OnClickListener {
+                override fun onClick(p0: DialogInterface?, p1: Int) {
+                    deleteTodo(position)
+                }
+            }
+        )
+        builder.show()
     }
 
-    override fun onRestart(){
-        super.onRestart()
-        getAllTodoList()
+    private fun deleteTodo(position: Int) {
+        Thread {
+            todoDao.deleteTodo(todoList[position]) // DB에서 삭제
+            todoList.removeAt(position) // 리스트에서 삭제
+            runOnUiThread { // UI 관련 작업은 UI 스레드에서
+                adapter.notifyDataSetChanged()
+                Toast.makeText(this, "삭제되었습니다.", Toast.LENGTH_SHORT).show()
+            }
+        }.start()
     }
 }
