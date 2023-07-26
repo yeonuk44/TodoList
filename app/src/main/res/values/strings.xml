@@ -8,5 +8,7 @@
     <string name="btn_medium">중간</string>
     <string name="btn_high">높음</string>
     <string name="btn_complete">완료</string>
+    <string name="tc_item_importance">1</string>
     <string name="tv_item_title">할 일 제목</string>
+
 </resources>
